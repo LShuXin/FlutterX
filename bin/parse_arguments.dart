@@ -1,6 +1,7 @@
 class Args {
   Args(this.mode, this.flavor, this.isReplaceMode);
 
+  /// debug release profile default
   String mode;
   String flavor;
   bool isReplaceMode;
