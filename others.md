@@ -84,14 +84,13 @@ class BackButtonIcon extends StatelessWidget {
   然后分别在 b.dart 和 c.dart 中导入平台允许使用的库，并编写逻辑。
 
   还有一种针对 dart:io 库的解决方案，即使用 [universal_io](https://github.com/dint-dev/universal_io) 这个第三方库替代dart:io，然后在代码中用 [kIsWeb](https://github.com/flutter/flutter/blob/2cde203b9c7a825cc0f0faa0a535b8314c106cba/packages/flutter/lib/src/foundation/constants.dart#L77) 常量来做判断。
+  - 存在的问题
 
-**存在的问题**
+    - **条件引入的写法只能用于区分 web 和 非 web 平台** 由于条件引入这种写法生效的条件实际就只有 if (dart.library.io)和if (dart.library.html) 这两种，所以如果是想区分 Android 和 iOS 平台，或者区分移动端和桌面端，这种方法就无法使用了。
 
-- **条件引入的写法只能用于区分 web 和 非 web 平台** 由于条件引入这种写法生效的条件实际就只有 if (dart.library.io)和if (dart.library.html) 这两种，所以如果是想区分 Android 和 iOS 平台，或者区分移动端和桌面端，这种方法就无法使用了。
+    - **写法非常死板繁琐** 如果要使用这种方法，基本上都需要编写三个源文件，写法非常固定。
 
-- **写法非常死板繁琐** 如果要使用这种方法，基本上都需要编写三个源文件，写法非常固定。
-
-- **IDE 的代码转跳被限制** 如果使用了这种写法，当想要通过查看定义的方式向上查找源码时，总是会转跳到条件导入中前面一个源代码中的位置，相当不友好。
+    - **IDE 的代码转跳被限制** 如果使用了这种写法，当想要通过查看定义的方式向上查找源码时，总是会转跳到条件导入中前面一个源代码中的位置，相当不友好。
 
 ### 自定义平台/多渠道打包
 
@@ -116,10 +115,8 @@ class BackButtonIcon extends StatelessWidget {
 C/C++ 语言的一大优势就是可以编写出“可移植性”高的代码，其中“条件编译”发挥了相当重要的作用（[对于C语言可移植性的思考](https://blog.51cto.com/vanshell/417068)）。
 
 语法格式：
-
+**if格式**
 ```C
-if格式
-
 # if 表达式
 
      语句序列①
@@ -131,10 +128,10 @@ if格式
 
 功能：当表达式的值为真时，编译语句序列①，否则编译语句序列②。其中，#else和语句序列②可有可无。
 
+**ifdef格式**
 ```
-ifdef格式
 
-# ifdef     标识符
+# ifdef 标识符
 
      语句序列①
 [#else
@@ -145,15 +142,16 @@ ifdef格式
 
 功能：当标识符已被定义时（用#define定义），编译语句序列①，否则编译语句序列②。其中#else和语句序列②可有可无。
 
-ifndef格式
-
-# ifndef     标识符
+**ifndef格式**
+```
+# ifndef  标识符
 
      语句序列①
 [#else
      语句序列②]
 
 # endif
+```
 
 功能：该格式功能与ifdef相反
 
@@ -162,20 +160,24 @@ ifndef格式
 ### Taro
 Taro 是一个开放式跨端跨框架解决方案，支持使用 React/Vue/Nerv 等框架来开发 微信 / 京东 / 百度 / 支付宝 / 字节跳动 / QQ / 飞书 小程序 / H5 / RN 等应用。
 
-Taro 的设计初衷就是为了统一跨平台的开发方式，虽然 Taro 不像 Flutter 可以同时支持移动端、桌面端和 Web 等软硬件差异巨大的平台，但是由于它支持了众多厂家的“类小程序”应用开发，虽然已经尽力通过运行时框架、组件、API 去抹平多端差异，但是由于不同的平台之间还是存在一些无法消除的差异，所以为了更好的实现跨平台开发，Taro 中提供了如下的解决方案：
-Taro 文档 - 跨平台开发
+> Taro 的设计初衷就是为了统一跨平台的开发方式，虽然 Taro 不像 Flutter 可以同时支持移动端、桌面端和 Web 等软硬件差异巨大的平台，但是由于它支持了众多厂家的“类小程序”应用开发，虽然已经尽力通过运行时框架、组件、API 去抹平多端差异，但是由于不同的平台之间还是存在一些无法消除的差异，所以为了更好的实现跨平台开发，Taro 中提供了如下的解决方案：
+[Taro 文档 - 跨平台开发](https://taro-docs.jd.com/taro/docs/envs)
 
-内置环境变量
+- 内置环境变量
 Taro 在编译时提供了一些内置的环境变量来帮助用户做一些特殊处理。
 
+```
 process.env.TARO_ENV
 用于判断当前的编译平台类型。
 
 取值：weapp / swan / alipay / tt / qq / jd / h5 / rn
+```
 
 可以通过这个变量来区分不同环境，从而使用不同的逻辑。在编译阶段，会移除不属于当前编译类型的代码，只保留当前编译类型下的代码，例如：
 
 1. 在微信小程序和 H5 端分别引用不同资源：
+
+```
 /** 源码 */
 if (process.env.TARO_ENV === 'weapp') {
   require('path/to/weapp/name')
@@ -191,7 +193,9 @@ if (true) {
 if (true) {
   require('path/to/h5/name')
 }
+```
 2. 决定不同端要加载的组件
+```
 /** 源码（React JSX） */
 <View>
   {process.env.TARO_ENV === 'weapp' && <ScrollViewWeapp />}
@@ -206,13 +210,16 @@ if (true) {
 <View>
   {true && <ScrollViewH5 />}
 </View>
-统一接口的多端文件
+```
+- 统一接口的多端文件
 内置环境变量虽然可以解决大部分跨端的问题，但是会让代码中充斥着逻辑判断的代码，影响代码的可维护性，而且也让代码变得愈发丑陋。为了解决这种问题，Taro 提供了另外一种称为“统一接口的多端文件”跨端开发的方式作为补充，主要用于以下场景：
 
+```
 多端组件
 多端脚本逻辑
 多端页面路由
-参考：统一接口的多端文件
+```
+参考：[统一接口的多端文件](https://taro-docs.jd.com/taro/docs/envs#%E7%BB%9F%E4%B8%80%E6%8E%A5%E5%8F%A3%E7%9A%84%E5%A4%9A%E7%AB%AF%E6%96%87%E4%BB%B6)
 
 ### 小结
 
@@ -220,13 +227,14 @@ if (true) {
 
 ### 已有方案
 
-- 宏替换工具 - definetool
-地址：fengdeyingzi / definetool
+#### 宏替换工具 - definetool
+**地址：** [fengdeyingzi / definetool](https://github.com/fengdeyingzi/definetool)
 
 这是一个为编程语言加入define宏定义的工具，用于实现对不同版本、不同平台进行区分，实现原理是利用宏注释不需要的代码，该工具理论上适用于任何编程语言，作者是 风的影子
 
-使用方式
+**使用方式**
 1.在代码中加入宏注释
+```
 // #ifdef WINDOWS
 print("hello windows");
 // #endif
@@ -234,18 +242,20 @@ print("hello windows");
 // #ifdef WEB
 print("hello web");
 // #endif
+```
 2.在代码所在目录运行findtool工具，并定义宏：WINDOWS
 这个命令可直接在本项目上操作来查看效果
-
+```
 definetool -define WINDOWS
+```
 在编译时若没有此宏，会将define与endif之间的内容进行/**/注释，若有宏，则进行解除注释。
 
 宏内定义的内容不要使用多行注释
 
-Flutter 工程条件编译打包脚本 - FlutterX
-地址：debuggerx01 / FlutterX
+#### Flutter 工程条件编译打包脚本 - FlutterX
+**地址：** [debuggerx01 / FlutterX](https://github.com/debuggerx01/FlutterX)
 
-这是作者debuggerx01编写的一套脚本，原理和上面的 definetool 类似，原理是通过将 flutter run/build [--option] 命令替换为 bash flutter.sh run/build [--option] ，在原有 flutter 运行/打包流程前后执行内置及用户自定义脚本，从而实现对打包流程的自定义控制，默认内置功能为根据命令参数中的 --debug/release 以及 --flavor 渠道名，还可以使用 --replace 参数，只对项目的源文件进行注释的，对代码条件编译。
+这是作者[debuggerx01](https://github.com/debuggerx01)编写的一套脚本，原理和上面的 definetool 类似，原理是通过将 flutter run/build [--option] 命令替换为 bash flutter.sh run/build [--option] ，在原有 flutter 运行/打包流程前后执行内置及用户自定义脚本，从而实现对打包流程的自定义控制，默认内置功能为根据命令参数中的 --debug/release 以及 --flavor 渠道名，还可以使用 --replace 参数，只对项目的源文件进行注释的，对代码条件编译。
 
 - 用法语法
 代码中使用形如以下的注释来进行代码块的条件标记：
